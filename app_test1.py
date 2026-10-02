@@ -3,6 +3,21 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 import aisuite as ai
+# --- MONKEY PATCH: Fix Groq reasoning_content error on Streamlit Cloud ---
+from aisuite.providers.groq_provider import GroqMessageConverter
+from aisuite.providers.openai_provider import OpenAICompliantMessageConverter
+
+class PatchedGroqMessageConverter(OpenAICompliantMessageConverter):
+    @staticmethod
+    def convert_request(messages):
+        transformed = OpenAICompliantMessageConverter.convert_request(messages)
+        for msg in transformed:
+            if isinstance(msg, dict) and msg.get("role") == "assistant":
+                msg.pop("reasoning_content", None)
+        return transformed
+
+GroqMessageConverter.convert_request = PatchedGroqMessageConverter.convert_request
+# --- END MONKEY PATCH ---
 
 # Import your real tool
 from tools_real import web_search
